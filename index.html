@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calculatrice de Photocopies</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .print-animation {
+            animation: print 0.5s ease;
+        }
+        @keyframes print {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <div class="container mx-auto px-4 py-8">
+        <div class="max-w-2xl mx-auto bg-white rounded-xl shadow-md overflow-hidden">
+            <!-- Header -->
+            <div class="bg-blue-600 py-4 px-6">
+                <div class="flex items-center justify-between">
+                    <h1 class="text-2xl font-bold text-white">
+                        <i class="fas fa-copy mr-2"></i> Calculatrice de Photocopies
+                    </h1>
+                    <div class="text-white">
+                        <span class="text-sm">Prix unitaire:</span>
+                        <span class="font-bold ml-1">200 Ar</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Main Content -->
+            <div class="p-6">
+                <!-- Date Selector -->
+                <div class="mb-6">
+                    <label for="date" class="block text-sm font-medium text-gray-700 mb-1">Date</label>
+                    <div class="relative">
+                        <input type="date" id="date" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500">
+                        <i class="fas fa-calendar absolute right-3 top-3 text-gray-400"></i>
+                    </div>
+                </div>
+
+                <!-- Counter Section -->
+                <div class="bg-gray-50 p-4 rounded-lg mb-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <h2 class="text-lg font-semibold text-gray-800">Photocopies aujourd'hui</h2>
+                        <button id="resetBtn" class="text-red-500 hover:text-red-700 text-sm font-medium">
+                            <i class="fas fa-redo mr-1"></i> Réinitialiser
+                        </button>
+                    </div>
+                    
+                    <div class="flex items-center justify-center space-x-6">
+                        <button id="decrementBtn" class="bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-3 px-5 rounded-full transition">
+                            <i class="fas fa-minus"></i>
+                        </button>
+                        
+                        <div class="text-center">
+                            <div id="counter" class="text-5xl font-bold text-blue-600 mb-1">0</div>
+                            <div class="text-sm text-gray-500">copies</div>
+                        </div>
+                        
+                        <button id="incrementBtn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-5 rounded-full transition print-animation">
+                            <i class="fas fa-plus"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Results -->
+                <div class="bg-blue-50 p-4 rounded-lg">
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="bg-white p-3 rounded-lg shadow-sm">
+                            <div class="text-sm text-gray-500 mb-1">Total copies</div>
+                            <div id="totalCopies" class="text-xl font-bold">0</div>
+                        </div>
+                        <div class="bg-white p-3 rounded-lg shadow-sm">
+                            <div class="text-sm text-gray-500 mb-1">Montant total</div>
+                            <div id="totalAmount" class="text-xl font-bold text-green-600">0 Ar</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- History -->
+                <div class="mt-8">
+                    <h2 class="text-lg font-semibold text-gray-800 mb-3">Historique des copies</h2>
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full bg-white rounded-lg overflow-hidden">
+                            <thead class="bg-gray-100">
+                                <tr>
+                                    <th class="py-2 px-4 text-left text-sm font-medium text-gray-600">Date</th>
+                                    <th class="py-2 px-4 text-right text-sm font-medium text-gray-600">Copies</th>
+                                    <th class="py-2 px-4 text-right text-sm font-medium text-gray-600">Montant</th>
+                                </tr>
+                            </thead>
+                            <tbody id="historyTable" class="divide-y divide-gray-200">
+                                <!-- Rows will be added dynamically -->
+                                <tr>
+                                    <td colspan="3" class="py-4 text-center text-gray-500">Aucun historique pour le moment</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Elements
+            const incrementBtn = document.getElementById('incrementBtn');
+            const decrementBtn = document.getElementById('decrementBtn');
+            const resetBtn = document.getElementById('resetBtn');
+            const counter = document.getElementById('counter');
+            const totalCopies = document.getElementById('totalCopies');
+            const totalAmount = document.getElementById('totalAmount');
+            const dateInput = document.getElementById('date');
+            const historyTable = document.getElementById('historyTable');
+            
+            // Variables
+            let count = 0;
+            let total = 0;
+            const unitPrice = 200;
+            let history = JSON.parse(localStorage.getItem('copyHistory')) || [];
+            
+            // Set today's date as default
+            const today = new Date().toISOString().split('T')[0];
+            dateInput.value = today;
+            
+            // Load history
+            renderHistory();
+            
+            // Event Listeners
+            incrementBtn.addEventListener('click', function() {
+                count++;
+                updateCounter();
+                addPrintAnimation();
+                saveToHistory();
+            });
+            
+            decrementBtn.addEventListener('click', function() {
+                if (count > 0) {
+                    count--;
+                    updateCounter();
+                    saveToHistory();
+                }
+            });
+            
+            resetBtn.addEventListener('click', function() {
+                count = 0;
+                updateCounter();
+                saveToHistory();
+            });
+            
+            // Functions
+            function updateCounter() {
+                counter.textContent = count;
+                totalCopies.textContent = count;
+                totalAmount.textContent = (count * unitPrice).toLocaleString() + ' Ar';
+            }
+            
+            function addPrintAnimation() {
+                incrementBtn.classList.add('print-animation');
+                setTimeout(() => {
+                    incrementBtn.classList.remove('print-animation');
+                }, 500);
+            }
+            
+            function saveToHistory() {
+                const today = dateInput.value;
+                const todayIndex = history.findIndex(item => item.date === today);
+                
+                if (todayIndex !== -1) {
+                    history[todayIndex].count = count;
+                    history[todayIndex].amount = count * unitPrice;
+                } else {
+                    history.push({
+                        date: today,
+                        count: count,
+                        amount: count * unitPrice
+                    });
+                }
+                
+                // Sort history by date (newest first)
+                history.sort((a, b) => new Date(b.date) - new Date(a.date));
+                
+                // Save to localStorage
+                localStorage.setItem('copyHistory', JSON.stringify(history));
+                
+                // Update history table
+                renderHistory();
+            }
+            
+            function renderHistory() {
+                if (history.length === 0) {
+                    historyTable.innerHTML = `
+                        <tr>
+                            <td colspan="3" class="py-4 text-center text-gray-500">Aucun historique pour le moment</td>
+                        </tr>
+                    `;
+                    return;
+                }
+                
+                historyTable.innerHTML = history.map(item => `
+                    <tr>
+                        <td class="py-2 px-4 text-sm">${formatDate(item.date)}</td>
+                        <td class="py-2 px-4 text-right text-sm">${item.count}</td>
+                        <td class="py-2 px-4 text-right text-sm font-medium text-green-600">${item.amount.toLocaleString()} Ar</td>
+                    </tr>
+                `).join('');
+            }
+            
+            function formatDate(dateString) {
+                const options = { year: 'numeric', month: 'short', day: 'numeric' };
+                return new Date(dateString).toLocaleDateString('fr-FR', options);
+            }
+            
+            // Load today's count if exists
+            const todayRecord = history.find(item => item.date === today);
+            if (todayRecord) {
+                count = todayRecord.count;
+                updateCounter();
+            }
+            
+            // Update when date changes
+            dateInput.addEventListener('change', function() {
+                const selectedDate = dateInput.value;
+                const record = history.find(item => item.date === selectedDate);
+                
+                if (record) {
+                    count = record.count;
+                } else {
+                    count = 0;
+                }
+                
+                updateCounter();
+            });
+        });
+    </script>
+</body>
+</html>
